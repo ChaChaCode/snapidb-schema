@@ -1,166 +1,136 @@
-create table bound_communities
-(
-    id                 integer                  default nextval('bound_communities_id_seq'::regclass) not null
-        primary key,
-    user_id            bigint,
-    community_username text,
-    community_id       bigint,
-    created_at         timestamp with time zone default CURRENT_TIMESTAMP,
-    community_type     text,
-    community_name     text,
-    media_file_ava     text
+-- Установка расширения для UUID
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+
+-- Создание последовательностей
+CREATE SEQUENCE bound_communities_id_seq;
+CREATE SEQUENCE giveaways_id_seq;
+CREATE SEQUENCE congratulations_id_seq;
+CREATE SEQUENCE giveaway_communities_id_seq;
+CREATE SEQUENCE giveaway_winners_id_seq;
+CREATE SEQUENCE participations_id_seq;
+CREATE SEQUENCE users_id_seq;
+
+-- Создание таблиц без внешних ключей (users, giveaways)
+CREATE TABLE users (
+    id                  INTEGER PRIMARY KEY DEFAULT nextval('users_id_seq'),
+    user_id             BIGINT,
+    payment_status      VARCHAR,
+    payment_amount      NUMERIC,
+    created_at          TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at          TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    payment_currency    VARCHAR,
+    subscription_status VARCHAR,
+    telegram_username   VARCHAR
 );
 
-alter table bound_communities
-    owner to postgres;
-
-grant delete, insert, references, select, trigger, truncate, update on bound_communities to app_user;
-
-grant delete, insert, references, select, trigger, truncate, update on bound_communities to new_user;
-
-create table giveaways
-(
-    id                        varchar(8)               default nextval('giveaways_id_seq'::regclass) not null
-        primary key,
-    user_id                   bigint,
-    name                      text,
-    description               text,
-    end_time                  timestamp with time zone,
-    winner_count              integer,
-    is_active                 text                     default 'false'::text,
-    media_type                text,
-    media_file_id             text,
-    created_at                timestamp with time zone default CURRENT_TIMESTAMP,
-    updated_at                timestamp with time zone default CURRENT_TIMESTAMP,
-    participant_counter_tasks jsonb                    default '{}'::jsonb,
-    published_messages        jsonb                    default '{}'::jsonb,
-    invite                    boolean                  default false,
-    quantity_invite           integer                  default 0,
-    is_completed              boolean                  default false
+CREATE TABLE giveaways (
+    id                        VARCHAR(8) PRIMARY KEY DEFAULT nextval('giveaways_id_seq'),
+    user_id                   BIGINT,
+    name                      TEXT,
+    description               TEXT,
+    end_time                  TIMESTAMP WITH TIME ZONE,
+    winner_count              INTEGER,
+    is_active                 TEXT DEFAULT 'false',
+    media_type                TEXT,
+    media_file_id             TEXT,
+    created_at                TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at                TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    participant_counter_tasks JSONB DEFAULT '{}',
+    published_messages        JSONB DEFAULT '{}',
+    invite                    BOOLEAN DEFAULT FALSE,
+    quantity_invite           INTEGER DEFAULT 0,
+    is_completed              BOOLEAN DEFAULT FALSE
 );
 
-alter table giveaways
-    owner to postgres;
-
-create table congratulations
-(
-    id          integer                  default nextval('congratulations_id_seq'::regclass) not null
-        primary key,
-    giveaway_id varchar(8)
-        references giveaways,
-    place       integer,
-    message     text,
-    created_at  timestamp with time zone default now(),
-    updated_at  timestamp with time zone default now()
+-- Создание таблиц с внешними ключами
+CREATE TABLE bound_communities (
+    id                 INTEGER PRIMARY KEY DEFAULT nextval('bound_communities_id_seq'),
+    user_id            BIGINT,
+    community_username TEXT,
+    community_id       BIGINT,
+    created_at         TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    community_type     TEXT,
+    community_name     TEXT,
+    media_file_ava     TEXT
 );
 
-alter table congratulations
-    owner to postgres;
-
-grant delete, insert, references, select, trigger, truncate, update on congratulations to app_user;
-
-grant delete, insert, references, select, trigger, truncate, update on congratulations to new_user;
-
-create table giveaway_communities
-(
-    id                 integer default nextval('giveaway_communities_id_seq'::regclass) not null
-        primary key,
-    giveaway_id        varchar(8)
-        references giveaways,
-    community_id       bigint,
-    community_username text,
-    community_type     text,
-    user_id            bigint,
-    community_name     text,
-    media_file_ava     text
+CREATE TABLE congratulations (
+    id          INTEGER PRIMARY KEY DEFAULT nextval('congratulations_id_seq'),
+    giveaway_id VARCHAR(8) REFERENCES giveaways(id),
+    place       INTEGER,
+    message     TEXT,
+    created_at  TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at  TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
-alter table giveaway_communities
-    owner to postgres;
-
-grant delete, insert, references, select, trigger, truncate, update on giveaway_communities to app_user;
-
-grant delete, insert, references, select, trigger, truncate, update on giveaway_communities to new_user;
-
-create table giveaway_winners
-(
-    id          integer                  default nextval('giveaway_winners_id_seq'::regclass) not null
-        primary key,
-    giveaway_id varchar(8)
-        references giveaways,
-    user_id     bigint,
-    username    text,
-    created_at  timestamp with time zone default now(),
-    place       integer,
-    name        text
+CREATE TABLE giveaway_communities (
+    id                 INTEGER PRIMARY KEY DEFAULT nextval('giveaway_communities_id_seq'),
+    giveaway_id        VARCHAR(8) REFERENCES giveaways(id),
+    community_id       BIGINT,
+    community_username TEXT,
+    community_type     TEXT,
+    user_id            BIGINT,
+    community_name     TEXT,
+    media_file_ava     TEXT
 );
 
-alter table giveaway_winners
-    owner to postgres;
-
-grant delete, insert, references, select, trigger, truncate, update on giveaway_winners to app_user;
-
-grant delete, insert, references, select, trigger, truncate, update on giveaway_winners to new_user;
-
-grant delete, insert, references, select, trigger, truncate, update on giveaways to app_user;
-
-grant delete, insert, references, select, trigger, truncate, update on giveaways to new_user;
-
-create table invitations
-(
-    id          uuid                     default uuid_generate_v4() not null
-        primary key,
-    inviting_id text,
-    giveaway_id varchar(8)
-        references giveaways,
-    invited_id  text,
-    created_at  timestamp with time zone default now()
+CREATE TABLE giveaway_winners (
+    id          INTEGER PRIMARY KEY DEFAULT nextval('giveaway_winners_id_seq'),
+    giveaway_id VARCHAR(8) REFERENCES giveaways(id),
+    user_id     BIGINT,
+    username    TEXT,
+    created_at  TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    place       INTEGER,
+    name        TEXT
 );
 
-alter table invitations
-    owner to postgres;
-
-grant delete, insert, references, select, trigger, truncate, update on invitations to app_user;
-
-grant delete, insert, references, select, trigger, truncate, update on invitations to new_user;
-
-create table participations
-(
-    id          integer                  default nextval('participations_id_seq'::regclass) not null
-        primary key,
-    user_id     bigint,
-    giveaway_id varchar(8)
-        references giveaways,
-    created_at  timestamp with time zone default CURRENT_TIMESTAMP,
-    constraint unique_user_giveaway
-        unique (user_id, giveaway_id)
+CREATE TABLE invitations (
+    id          UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    inviting_id TEXT,
+    giveaway_id VARCHAR(8) REFERENCES giveaways(id),
+    invited_id  TEXT,
+    created_at  TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
-alter table participations
-    owner to postgres;
-
-grant delete, insert, references, select, trigger, truncate, update on participations to app_user;
-
-grant delete, insert, references, select, trigger, truncate, update on participations to new_user;
-
-create table users
-(
-    id                  integer                  default nextval('users_id_seq'::regclass) not null
-        primary key,
-    user_id             bigint,
-    payment_status      varchar,
-    payment_amount      numeric,
-    created_at          timestamp with time zone default CURRENT_TIMESTAMP,
-    updated_at          timestamp with time zone default CURRENT_TIMESTAMP,
-    payment_currency    varchar,
-    subscription_status varchar,
-    telegram_username   varchar
+CREATE TABLE participations (
+    id          INTEGER PRIMARY KEY DEFAULT nextval('participations_id_seq'),
+    user_id     BIGINT,
+    giveaway_id VARCHAR(8) REFERENCES giveaways(id),
+    created_at  TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT unique_user_giveaway UNIQUE (user_id, giveaway_id)
 );
 
-alter table users
-    owner to postgres;
+-- Установка владельца для всех таблиц
+ALTER TABLE bound_communities OWNER TO postgres;
+ALTER TABLE giveaways OWNER TO postgres;
+ALTER TABLE congratulations OWNER TO postgres;
+ALTER TABLE giveaway_communities OWNER TO postgres;
+ALTER TABLE giveaway_winners OWNER TO postgres;
+ALTER TABLE invitations OWNER TO postgres;
+ALTER TABLE participations OWNER TO postgres;
+ALTER TABLE users OWNER TO postgres;
 
-grant delete, insert, references, select, trigger, truncate, update on users to app_user;
+-- Применение прав доступа
+GRANT DELETE, INSERT, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE ON bound_communities TO app_user;
+GRANT DELETE, INSERT, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE ON bound_communities TO new_user;
 
-grant delete, insert, references, select, trigger, truncate, update on users to new_user;
+GRANT DELETE, INSERT, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE ON giveaways TO app_user;
+GRANT DELETE, INSERT, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE ON giveaways TO new_user;
 
+GRANT DELETE, INSERT, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE ON congratulations TO app_user;
+GRANT DELETE, INSERT, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE ON congratulations TO new_user;
+
+GRANT DELETE, INSERT, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE ON giveaway_communities TO app_user;
+GRANT DELETE, INSERT, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE ON giveaway_communities TO new_user;
+
+GRANT DELETE, INSERT, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE ON giveaway_winners TO app_user;
+GRANT DELETE, INSERT, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE ON giveaway_winners TO new_user;
+
+GRANT DELETE, INSERT, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE ON invitations TO app_user;
+GRANT DELETE, INSERT, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE ON invitations TO new_user;
+
+GRANT DELETE, INSERT, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE ON participations TO app_user;
+GRANT DELETE, INSERT, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE ON participations TO new_user;
+
+GRANT DELETE, INSERT, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE ON users TO app_user;
+GRANT DELETE, INSERT, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE ON users TO new_user;
